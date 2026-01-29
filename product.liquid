@@ -1,0 +1,431 @@
+<div class="container py-8">
+  <nav class="mb-8 text-sm text-muted-foreground">
+    <a href="{{ routes.root_url }}" class="hover:text-primary">Home</a>
+    {% if collection %}
+      <span class="mx-2">/</span>
+      <a href="{{ collection.url }}" class="hover:text-primary">{{ collection.title }}</a>
+    {% endif %}
+    <span class="mx-2">/</span>
+    <span class="text-foreground">{{ product.title }}</span>
+  </nav>
+
+  <div class="grid md:grid-cols-2 gap-12">
+    <!-- Product Images -->
+    <div class="space-y-4">
+      {% if product.featured_image %}
+        <div class="aspect-[4/5] overflow-hidden rounded-2xl">
+          <img src="{{ product.featured_image | img_url: '800x1000' }}" 
+               alt="{{ product.featured_image.alt | default: product.title }}" 
+               class="w-full h-full object-cover"
+               id="main-product-image">
+        </div>
+        
+        {% if product.images.size > 1 %}
+          <div class="grid grid-cols-4 gap-2">
+            {% for image in product.images %}
+              <div class="aspect-square overflow-hidden rounded-lg cursor-pointer border-2 border-transparent hover:border-primary transition-colors"
+                   onclick="updateMainImage('{{ image | img_url: '800x1000' }}')">
+                <img src="{{ image | img_url: '200x200' }}" 
+                     alt="{{ image.alt | default: product.title }}" 
+                     class="w-full h-full object-cover">
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="aspect-[4/5] bg-gray-100 rounded-2xl flex items-center justify-center">
+          <span class="text-gray-400">No image available</span>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Product Information -->
+    <div class="space-y-6">
+      <!-- Title and Price -->
+      <div>
+        <h1 class="text-3xl md:text-4xl font-serif font-light mb-4">{{ product.title }}</h1>
+        <div class="flex items-center space-x-4">
+          <span class="text-2xl font-semibold text-primary">{{ product.price | money }}</span>
+          {% if product.compare_at_price > product.price %}
+            <span class="text-lg text-muted-foreground line-through">
+              {{ product.compare_at_price | money }}
+            </span>
+            <span class="bg-red-100 text-red-800 text-sm px-2 py-1 rounded">
+              Save {{ product.compare_at_price | minus: product.price | money }}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="prose prose-lg max-w-none text-muted-foreground">
+        {{ product.description }}
+      </div>
+
+      <!-- Product Form -->
+      <div class="space-y-4">
+        {% form 'product', product, id: 'product-form', class: 'space-y-4' %}
+          <!-- Variant Selection -->
+          {% unless product.has_only_default_variant %}
+            <div class="space-y-3">
+              {% for option in product.options_with_values %}
+                <div class="form-group">
+                  <label class="form-label">{{ option.name }}</label>
+                  <div class="flex flex-wrap gap-2">
+                    {% for value in option.values %}
+                      <input type="radio" 
+                             name="{{ option.name }}" 
+                             value="{{ value }}" 
+                             id="{{ option.name }}-{{ value }}" 
+                             class="hidden"
+                             {% if option.selected_value == value %}checked{% endif %}>
+                      <label for="{{ option.name }}-{{ value }}" 
+                             class="px-4 py-2 border border-border rounded-lg cursor-pointer hover:border-primary transition-colors">
+                        {{ value }}
+                      </label>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% endunless %}
+
+          <!-- Quantity and Add to Cart -->
+          <div class="flex items-center space-x-4">
+            <div class="flex items-center border border-border rounded-lg">
+              <button type="button" 
+                      class="px-3 py-2 hover:bg-accent transition-colors"
+                      onclick="updateQuantity(-1)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                </svg>
+              </button>
+              <input type="number" 
+                     name="quantity" 
+                     id="quantity" 
+                     value="1" 
+                     min="1" 
+                     class="w-16 text-center border-0 focus:ring-0">
+              <button type="button" 
+                      class="px-3 py-2 hover:bg-accent transition-colors"
+                      onclick="updateQuantity(1)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+              </button>
+            </div>
+            
+            <button type="submit" 
+                    name="add" 
+                    class="btn btn-primary flex-1"
+                    {% unless product.available %}disabled{% endunless %}>
+              {% if product.available %}
+                Add to Cart
+              {% else %}
+                Out of Stock
+              {% endif %}
+            </button>
+          </div>
+
+          <!-- Hidden variant ID -->
+          <select name="id" id="product-select" class="hidden">
+            {% for variant in product.variants %}
+              <option value="{{ variant.id }}" 
+                      {% if variant == product.selected_or_first_available_variant %}selected{% endif %}
+                      data-price="{{ variant.price }}"
+                      data-compare-price="{{ variant.compare_at_price }}"
+                      data-available="{{ variant.available }}">
+                {{ variant.title }}
+              </option>
+            {% endfor %}
+          </select>
+        {% endform %}
+      </div>
+
+      <!-- Product Features -->
+      {% if section.settings.show_features %}
+        <div class="border-t border-border pt-6">
+          <h3 class="text-lg font-semibold mb-4">Product Features</h3>
+          <ul class="space-y-2 text-muted-foreground">
+            {% for block in section.blocks %}
+              {% if block.type == 'feature' %}
+                <li class="flex items-start">
+                  <svg class="w-5 h-5 text-primary mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                  </svg>
+                  {{ block.settings.feature_text }}
+                </li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <!-- Additional Information -->
+      <div class="border-t border-border pt-6">
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span class="text-muted-foreground">SKU:</span>
+            <span class="ml-2">{{ product.selected_or_first_available_variant.sku }}</span>
+          </div>
+          <div>
+            <span class="text-muted-foreground">Category:</span>
+            <span class="ml-2">{{ product.type }}</span>
+          </div>
+          {% if product.vendor %}
+            <div>
+              <span class="text-muted-foreground">Brand:</span>
+              <span class="ml-2">{{ product.vendor }}</span>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Share -->
+      {% if section.settings.show_share_buttons %}
+        <div class="border-t border-border pt-6">
+          <h3 class="text-lg font-semibold mb-4">Share this product</h3>
+          <div class="flex space-x-4">
+            <a href="https://www.facebook.com/sharer/sharer.php?u={{ shop.url | append: product.url }}" 
+               target="_blank" 
+               class="text-muted-foreground hover:text-primary transition-colors">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+            </a>
+            <a href="https://twitter.com/intent/tweet?text={{ product.title }}&url={{ shop.url | append: product.url }}" 
+               target="_blank" 
+               class="text-muted-foreground hover:text-primary transition-colors">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+              </svg>
+            </a>
+            <a href="mailto:?subject={{ product.title }}&body=Check out this product: {{ shop.url | append: product.url }}" 
+               class="text-muted-foreground hover:text-primary transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+            </a>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Related Products -->
+  {% if section.settings.show_related_products %}
+    {% assign related_collection = collections[section.settings.related_collection] %}
+    {% if related_collection.products.size > 0 %}
+      <section class="mt-16 pt-16 border-t border-border">
+        <h2 class="section-title">{{ section.settings.related_products_title | default: "Related Products" }}</h2>
+        <div class="product-grid">
+          {% for related_product in related_collection.products limit: 4 %}
+            {% unless related_product.id == product.id %}
+              <div class="product-card animate-on-scroll">
+                <a href="{{ related_product.url }}" class="block">
+                  {% if related_product.featured_image %}
+                    <img src="{{ related_product.featured_image | img_url: '400x500' }}" 
+                         alt="{{ related_product.featured_image.alt | default: related_product.title }}" 
+                         class="product-image"
+                         loading="lazy">
+                  {% else %}
+                    <div class="product-image bg-gray-100 flex items-center justify-center">
+                      <span class="text-gray-400">No image</span>
+                    </div>
+                  {% endif %}
+                </a>
+                <div class="product-info">
+                  <h3 class="product-title">
+                    <a href="{{ related_product.url }}" class="hover:text-primary transition-colors">
+                      {{ related_product.title }}
+                    </a>
+                  </h3>
+                  <p class="product-price">
+                    {{ related_product.price | money }}
+                    {% if related_product.compare_at_price > related_product.price %}
+                      <span class="text-sm text-muted-foreground line-through ml-2">
+                        {{ related_product.compare_at_price | money }}
+                      </span>
+                    {% endif %}
+                  </p>
+                  <a href="{{ related_product.url }}" class="btn btn-outline w-full">
+                    View Product
+                  </a>
+                </div>
+              </div>
+            {% endunless %}
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+  {% endif %}
+</div>
+
+<script>
+// Product page JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+  // Variant selection
+  const variantSelectors = document.querySelectorAll('input[name^="Option"]');
+  const productSelect = document.getElementById('product-select');
+  const addToCartForm = document.getElementById('product-form');
+  
+  if (variantSelectors.length > 0) {
+    variantSelectors.forEach(selector => {
+      selector.addEventListener('change', function() {
+        updateVariant();
+      });
+    });
+  }
+
+  function updateVariant() {
+    const selectedOptions = [];
+    variantSelectors.forEach(selector => {
+      if (selector.checked) {
+        selectedOptions.push(selector.value);
+      }
+    });
+
+    const selectedVariant = EquipWellness.getVariantFromOptions({{ product | json }}, selectedOptions);
+    
+    if (selectedVariant) {
+      productSelect.value = selectedVariant.id;
+      
+      // Update price
+      const priceElement = document.querySelector('.text-primary');
+      const comparePriceElement = document.querySelector('.line-through');
+      
+      if (priceElement) {
+        priceElement.textContent = EquipWellness.formatPrice(selectedVariant.price);
+      }
+      
+      if (comparePriceElement && selectedVariant.compare_at_price) {
+        comparePriceElement.textContent = EquipWellness.formatPrice(selectedVariant.compare_at_price);
+      }
+      
+      // Update add to cart button
+      const addToCartButton = document.querySelector('button[name="add"]');
+      if (addToCartButton) {
+        if (selectedVariant.available) {
+          addToCartButton.disabled = false;
+          addToCartButton.textContent = 'Add to Cart';
+        } else {
+          addToCartButton.disabled = true;
+          addToCartButton.textContent = 'Out of Stock';
+        }
+      }
+      
+      // Update URL
+      const url = new URL(window.location);
+      url.searchParams.set('variant', selectedVariant.id);
+      window.history.replaceState({}, '', url);
+    }
+  }
+
+  // Update main image
+  window.updateMainImage = function(imageSrc) {
+    const mainImage = document.getElementById('main-product-image');
+    if (mainImage) {
+      mainImage.src = imageSrc;
+    }
+  };
+
+  // Quantity controls
+  window.updateQuantity = function(change) {
+    const quantityInput = document.getElementById('quantity');
+    const currentValue = parseInt(quantityInput.value) || 1;
+    const newValue = Math.max(1, currentValue + change);
+    quantityInput.value = newValue;
+  };
+
+  // Form submission
+  if (addToCartForm) {
+    addToCartForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      const submitButton = this.querySelector('button[name="add"]');
+      const originalText = submitButton.textContent;
+      
+      submitButton.textContent = 'Adding...';
+      submitButton.disabled = true;
+      
+      fetch('/cart/add.js', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        showNotification('Product added to cart!', 'success');
+        updateCartCount();
+        
+        // Reset button
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+      })
+      .catch(error => {
+        console.error('Error adding to cart:', error);
+        showNotification('Error adding product to cart', 'error');
+        
+        // Reset button
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+      });
+    });
+  }
+});
+</script>
+
+{% schema %}
+{
+  "name": "Product Page",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_features",
+      "label": "Show Product Features",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_share_buttons",
+      "label": "Show Share Buttons",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Related Products"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_related_products",
+      "label": "Show Related Products",
+      "default": true
+    },
+    {
+      "type": "collection",
+      "id": "related_collection",
+      "label": "Related Products Collection"
+    },
+    {
+      "type": "text",
+      "id": "related_products_title",
+      "label": "Related Products Title",
+      "default": "Related Products"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "feature",
+      "name": "Product Feature",
+      "settings": [
+        {
+          "type": "text",
+          "id": "feature_text",
+          "label": "Feature Text",
+          "default": "Premium quality ingredients"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

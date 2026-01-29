@@ -1,0 +1,372 @@
+<!-- Hero Section -->
+<section class="hero">
+  <div class="container">
+    <div class="max-w-4xl mx-auto text-center">
+      <h1 class="hero-title">
+        {{ section.settings.hero_title | default: "Equip Wellness" }}
+      </h1>
+      <p class="hero-subtitle">
+        {{ section.settings.hero_subtitle | default: "A collective space for holistic wellness, massage supplies, and knowledge. Featuring Hagina Japanese Mint Oil." }}
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        {% if section.settings.primary_button_text != blank and section.settings.primary_button_link != blank %}
+          <a href="{{ section.settings.primary_button_link }}" class="btn btn-primary">
+            {{ section.settings.primary_button_text }}
+          </a>
+        {% endif %}
+        {% if section.settings.secondary_button_text != blank and section.settings.secondary_button_link != blank %}
+          <a href="{{ section.settings.secondary_button_link }}" class="btn btn-outline">
+            {{ section.settings.secondary_button_text }}
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Featured Products Section -->
+{% if section.settings.show_featured_products %}
+  <section class="section">
+    <div class="container">
+      <h2 class="section-title">{{ section.settings.featured_products_title | default: "Featured Products" }}</h2>
+      <div class="product-grid">
+        {% assign featured_collection = collections[section.settings.featured_collection] %}
+        {% for product in featured_collection.products limit: section.settings.products_to_show %}
+          <div class="product-card animate-on-scroll">
+            <a href="{{ product.url }}" class="block">
+              {% if product.featured_image %}
+                <img src="{{ product.featured_image | img_url: '400x500' }}" 
+                     alt="{{ product.featured_image.alt | default: product.title }}" 
+                     class="product-image"
+                     loading="lazy">
+              {% else %}
+                <div class="product-image bg-gray-100 flex items-center justify-center">
+                  <span class="text-gray-400">No image</span>
+                </div>
+              {% endif %}
+            </a>
+            <div class="product-info">
+              <h3 class="product-title">
+                <a href="{{ product.url }}" class="hover:text-primary transition-colors">
+                  {{ product.title }}
+                </a>
+              </h3>
+              <p class="product-price">
+                {{ product.price | money }}
+                {% if product.compare_at_price > product.price %}
+                  <span class="text-sm text-muted-foreground line-through ml-2">
+                    {{ product.compare_at_price | money }}
+                  </span>
+                {% endif %}
+              </p>
+              <p class="product-description">
+                {{ product.description | strip_html | truncate: 100 }}
+              </p>
+              {% if product.available %}
+                {% if product.variants.size == 1 %}
+                  <button type="button" 
+                          class="btn btn-primary w-full" 
+                          data-quick-add
+                          data-variant-id="{{ product.variants.first.id }}">
+                    Add to Cart
+                  </button>
+                {% else %}
+                  <a href="{{ product.url }}" class="btn btn-primary w-full">
+                    View Options
+                  </a>
+                {% endif %}
+              {% else %}
+                <button type="button" class="btn btn-secondary w-full" disabled>
+                  Out of Stock
+                </button>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      {% if section.settings.show_view_all_button %}
+        <div class="text-center mt-12">
+          <a href="{{ featured_collection.url }}" class="btn btn-outline">
+            View All Products
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+{% endif %}
+
+<!-- About Section -->
+{% if section.settings.show_about_section %}
+  <section class="section bg-card">
+    <div class="container">
+      <div class="max-w-4xl mx-auto text-center">
+        <h2 class="section-title">{{ section.settings.about_title | default: "About Equip Wellness" }}</h2>
+        <div class="prose prose-lg max-w-none text-muted-foreground leading-relaxed">
+          {{ section.settings.about_content | default: "<p>Equip Wellness is a collective space dedicated to holistic healing and wellness. We carefully curate massage supplies and knowledge to support your journey toward better health and wellbeing.</p><p>Our signature product, Hagina Japanese Mint Oil, represents our commitment to quality traditional remedies that have stood the test of time.</p>" }}
+        </div>
+        {% if section.settings.about_button_text != blank and section.settings.about_button_link != blank %}
+          <div class="mt-8">
+            <a href="{{ section.settings.about_button_link }}" class="btn btn-primary">
+              {{ section.settings.about_button_text }}
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+{% endif %}
+
+<!-- Features Section -->
+{% if section.settings.show_features %}
+  <section class="section">
+    <div class="container">
+      <h2 class="section-title">{{ section.settings.features_title | default: "Why Choose Us" }}</h2>
+      <div class="grid md:grid-cols-3 gap-8">
+        {% for block in section.blocks %}
+          {% if block.type == 'feature' %}
+            <div class="text-center animate-on-scroll">
+              {% if block.settings.icon != blank %}
+                <div class="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
+                  <img src="{{ block.settings.icon | img_url: '64x64' }}" 
+                       alt="{{ block.settings.title }}" 
+                       class="w-8 h-8">
+                </div>
+              {% endif %}
+              <h3 class="text-xl font-serif font-light mb-3">{{ block.settings.title }}</h3>
+              <p class="text-muted-foreground">{{ block.settings.description }}</p>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endif %}
+
+<!-- Testimonials Section -->
+{% if section.settings.show_testimonials %}
+  <section class="section bg-card">
+    <div class="container">
+      <h2 class="section-title">{{ section.settings.testimonials_title | default: "What Our Customers Say" }}</h2>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {% for block in section.blocks %}
+          {% if block.type == 'testimonial' %}
+            <div class="card p-6 animate-on-scroll">
+              <div class="flex items-center mb-4">
+                {% if block.settings.customer_image != blank %}
+                  <img src="{{ block.settings.customer_image | img_url: '80x80' }}" 
+                       alt="{{ block.settings.customer_name }}" 
+                       class="w-12 h-12 rounded-full mr-4">
+                {% endif %}
+                <div>
+                  <h4 class="font-semibold">{{ block.settings.customer_name }}</h4>
+                  <p class="text-sm text-muted-foreground">{{ block.settings.customer_title }}</p>
+                </div>
+              </div>
+              <blockquote class="text-muted-foreground italic">
+                "{{ block.settings.testimonial }}"
+              </blockquote>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Homepage",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Hero Section"
+    },
+    {
+      "type": "text",
+      "id": "hero_title",
+      "label": "Hero Title",
+      "default": "Equip Wellness"
+    },
+    {
+      "type": "textarea",
+      "id": "hero_subtitle",
+      "label": "Hero Subtitle",
+      "default": "A collective space for holistic wellness, massage supplies, and knowledge. Featuring Hagina Japanese Mint Oil."
+    },
+    {
+      "type": "text",
+      "id": "primary_button_text",
+      "label": "Primary Button Text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "primary_button_link",
+      "label": "Primary Button Link",
+      "default": "/collections/all"
+    },
+    {
+      "type": "text",
+      "id": "secondary_button_text",
+      "label": "Secondary Button Text",
+      "default": "Learn More"
+    },
+    {
+      "type": "url",
+      "id": "secondary_button_link",
+      "label": "Secondary Button Link",
+      "default": "/pages/about"
+    },
+    {
+      "type": "header",
+      "content": "Featured Products"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_featured_products",
+      "label": "Show Featured Products",
+      "default": true
+    },
+    {
+      "type": "collection",
+      "id": "featured_collection",
+      "label": "Featured Collection"
+    },
+    {
+      "type": "range",
+      "id": "products_to_show",
+      "label": "Products to Show",
+      "min": 3,
+      "max": 12,
+      "step": 3,
+      "default": 6
+    },
+    {
+      "type": "checkbox",
+      "id": "show_view_all_button",
+      "label": "Show View All Button",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "About Section"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_about_section",
+      "label": "Show About Section",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "about_title",
+      "label": "About Title",
+      "default": "About Equip Wellness"
+    },
+    {
+      "type": "richtext",
+      "id": "about_content",
+      "label": "About Content",
+      "default": "<p>Equip Wellness is a collective space dedicated to holistic healing and wellness. We carefully curate massage supplies and knowledge to support your journey toward better health and wellbeing.</p><p>Our signature product, Hagina Japanese Mint Oil, represents our commitment to quality traditional remedies that have stood the test of time.</p>"
+    },
+    {
+      "type": "text",
+      "id": "about_button_text",
+      "label": "About Button Text",
+      "default": "Learn More About Us"
+    },
+    {
+      "type": "url",
+      "id": "about_button_link",
+      "label": "About Button Link",
+      "default": "/pages/about"
+    },
+    {
+      "type": "header",
+      "content": "Features Section"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_features",
+      "label": "Show Features",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "features_title",
+      "label": "Features Title",
+      "default": "Why Choose Us"
+    },
+    {
+      "type": "header",
+      "content": "Testimonials Section"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_testimonials",
+      "label": "Show Testimonials",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "testimonials_title",
+      "label": "Testimonials Title",
+      "default": "What Our Customers Say"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "feature",
+      "name": "Feature",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "icon",
+          "label": "Icon"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Quality Products"
+        },
+        {
+          "type": "textarea",
+          "id": "description",
+          "label": "Description",
+          "default": "We source only the highest quality wellness products and supplies."
+        }
+      ]
+    },
+    {
+      "type": "testimonial",
+      "name": "Testimonial",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "customer_image",
+          "label": "Customer Image"
+        },
+        {
+          "type": "text",
+          "id": "customer_name",
+          "label": "Customer Name",
+          "default": "Jane Doe"
+        },
+        {
+          "type": "text",
+          "id": "customer_title",
+          "label": "Customer Title",
+          "default": "Wellness Practitioner"
+        },
+        {
+          "type": "textarea",
+          "id": "testimonial",
+          "label": "Testimonial",
+          "default": "Amazing products and excellent service. The Hagina Japanese Mint Oil has transformed my practice."
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
